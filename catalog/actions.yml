@@ -1,0 +1,7 @@
+# SHA is the pin. The version field is the human label and must appear next to
+# the uses: line in .github/workflows.
+schema: nddev-actions-light-actions/v1
+actions:
+  - name: actions/checkout
+    sha: "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    version: "v7.0.1"

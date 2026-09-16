@@ -1,0 +1,16 @@
+# Synthetic inventory. Real hosts, addresses and registrations belong in a
+# private estate overlay, not in this repository.
+schema: nddev-actions-light-host/v1
+host:
+  id: example-ci-1
+  os: ubuntu-24.04
+  arch: x64
+slots:
+  - instance: example-org-1
+    url: https://github.com/example-org
+    docker: true
+  - instance: example-user-repo-1
+    url: https://github.com/example-user/example-app
+    docker: false
+labels:
+  - nddev-linux

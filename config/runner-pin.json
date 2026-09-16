@@ -1,0 +1,22 @@
+{
+  "schema": "nddev-actions-runner-pin/v1",
+  "runner": {
+    "name": "actions/runner",
+    "version": "2.337.0",
+    "os": "linux",
+    "arch": "x64",
+    "archive": "actions-runner-linux-x64-2.337.0.tar.gz",
+    "url": "https://github.com/actions/runner/releases/download/v2.337.0/actions-runner-linux-x64-2.337.0.tar.gz",
+    "sha256": "70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613"
+  },
+  "labels": {
+    "required": ["nddev-linux"],
+    "github_default": ["self-hosted", "Linux", "X64"]
+  },
+  "layout": {
+    "user": "gha-runner",
+    "root": "/opt/gha-runner",
+    "instance_unit": "gha-runner@.service",
+    "docker_unit": "gha-runner-docker@.service"
+  }
+}
