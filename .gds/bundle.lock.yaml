@@ -1,0 +1,17 @@
+# GENERATED FILE - DO NOT EDIT DIRECTLY
+schema_version: 1
+
+bundle:
+  version: "0.9.6"
+  release_sequence: 62
+  channel: "canary"
+  source_tree_digest: "sha256:a483bf4349e287b41e627f5b174e239ae54a6c99a7af5c65fc85442f67314911"
+  digest: "sha256:a7c9289f7d62c2d1dc261b2c02e25b65805619dc313276142f783e973031bafb"
+  attestation_identity_digest: "sha256:f04a92182fd4660fdbf6f80accfdd2d9119bc88ad0c8752bd9a13b1da3afc132"
+
+projection:
+  input_digest: "sha256:5def43800f748cfbd5a3e2c4f7426d6da39c1026396d421fe51553917b2f177d"
+  output_digest: "sha256:5044575fb2fd3b060181f584778d848cf4a52fcff98a49bd62a77d8c0f97d30f"
+  files:
+    - path: ".gds/compiled-policy.json"
+      digest: "sha256:942d64c97320eb5b390bf8375e5d08dd82687c9c027dd0ce0d2a952a1ec994a5"

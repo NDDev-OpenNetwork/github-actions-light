@@ -1,0 +1,81 @@
+schema_version: 1
+
+repository:
+  id: "repo_01M2PA4NV6Z6AH66Z15N1FZVBH"
+  display_name: "github-actions-light"
+  roles:
+    - "project"
+    - "module"
+  lifecycle: "active"
+
+provider:
+  type: "github"
+  installation: "installation:github-opennetwork"
+  repository_id: 1373740336
+  owner: "NDDev-OpenNetwork"
+  name: "github-actions-light"
+
+classification:
+  portfolios:
+    - "portfolio:opennetwork-projects"
+  visibility_contract: "public"
+  data_classification: "public"
+
+product:
+  purpose: >-
+    Pinned official GitHub Actions runner install: systemd slots and
+    organization or repository registration without a custom scheduler.
+  capabilities:
+    - "Checksum-pinned actions/runner tarball"
+    - "One systemd instance per concurrent job slot"
+    - "Organization and repository registration helpers"
+    - "Single extra routing label nddev-linux"
+    - "Synthetic host examples with no estate data"
+  entrypoints:
+    - change: "Runner pin"
+      path: "config"
+    - change: "Systemd units"
+      path: "systemd"
+    - change: "Install and unregister helpers"
+      path: "scripts"
+
+policy:
+  profiles:
+    - "repository-default"
+    - "public-module"
+  rollout_ring: "standard"
+
+git:
+  default_branch: "main"
+  integration: "pull-request"
+  branch_model: "task-branches"
+  handoff_pr: "preferred"
+  cleanup: "merged-only"
+
+verification:
+  commands:
+    test:
+      - "scripts/validate_module.sh"
+  required:
+    - "test"
+  required_contexts: []
+
+agent:
+  context_profile: "project-default"
+  generated_agents: false
+  serena:
+    enabled: false
+    provenance_required: false
+
+module:
+  contract: "public"
+  consumption:
+    - "git-submodule"
+  compatibility: "commit-contract"
+  pin_policy: "default-branch-commit"
+  publication:
+    registry: "none"
+    github_release: "optional"
+
+release:
+  mode: "bundle"
