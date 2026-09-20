@@ -20,6 +20,14 @@ Each systemd instance is one concurrent GitHub job. Organization registrations
 serve one organization. Personal repositories require repository registrations.
 This product does not create a cross-account pool.
 
+## Job environment
+
+Jobs inherit the runner process environment plus `${PIN_ROOT}/<instance>/.env`,
+which the installer seeds with `LANG=C.UTF-8` and a `PATH` that adds the
+slot-local `.local/bin` and `/usr/local/cargo/bin` ahead of the system
+defaults. Slots provisioned before this contract need the same `.env` entries
+written by hand; a running slot must be restarted once to pick them up.
+
 ## Failure
 
 A missing, expired, or replayed registration token fails closed. A pin digest
