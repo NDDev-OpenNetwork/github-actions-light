@@ -33,6 +33,13 @@ class LightContractTests(unittest.TestCase):
         self.assertIn("--unattended", text)
         self.assertNotIn("garm", text.lower())
 
+    def test_install_script_seeds_job_path(self) -> None:
+        text = (ROOT / "scripts/install-runner.sh").read_text(encoding="utf-8")
+        self.assertIn('/.env', text)
+        self.assertIn("grep -q '^PATH='", text)
+        self.assertIn("/.local/bin", text)
+        self.assertIn("/usr/local/cargo/bin", text)
+
     def test_public_ci_is_hosted(self) -> None:
         self.contract.assert_public_ci()
 
