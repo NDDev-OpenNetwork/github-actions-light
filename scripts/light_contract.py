@@ -142,6 +142,8 @@ def assert_slot_isolation() -> None:
         fail("rollout-slots.sh must restart every slot before sealing the shared toolchains")
     if "Runner.Worker" not in rollout:
         fail("rollout-slots.sh must restart a slot only when it has no job")
+    if "configured=1" not in install or 'if [[ "${configured}" -eq 0 ]]' not in install:
+        fail("install-runner.sh must repair a registered instance instead of reconfiguring it")
     if "list-unit-files" in code(unregister) or "--unattended || true" in code(unregister):
         fail("unregister-runner.sh must not skip the stop or swallow a failed removal")
 
