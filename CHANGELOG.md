@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2
+
+- `scripts/docker-hygiene.sh` and `gha-docker-hygiene.{service,timer}`: daily,
+  bounded Docker cleanup for hosts whose slots share the Docker socket. Only
+  unused objects are removed; named volumes are never touched, and unused images
+  go only above a disk threshold.
+- `scripts/install-host.sh`: idempotent host setup (unit files, hygiene timer),
+  to run after each module upgrade on a host.
+
 ## 0.1.1
 
 - `install-runner.sh` seeds `${PIN_ROOT}/<instance>/.env` with `LANG` and a

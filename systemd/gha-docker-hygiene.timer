@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily bounded Docker cleanup for official runner slots
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

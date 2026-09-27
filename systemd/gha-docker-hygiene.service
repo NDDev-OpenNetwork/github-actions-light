@@ -1,0 +1,11 @@
+[Unit]
+Description=Bounded Docker cleanup for official runner slots
+Documentation=https://github.com/NDDev-OpenNetwork/github-actions-light
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/github-actions-light/scripts/docker-hygiene.sh
+Nice=10
+IOSchedulingClass=idle
