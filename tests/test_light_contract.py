@@ -40,6 +40,27 @@ class LightContractTests(unittest.TestCase):
         self.assertIn("/.local/bin", text)
         self.assertIn("/usr/local/cargo/bin", text)
 
+    def test_host_hygiene_removes_only_what_no_job_uses(self) -> None:
+        self.contract.assert_host_hygiene()
+        text = (ROOT / "scripts/docker-hygiene.sh").read_text(encoding="utf-8")
+        self.assertIn('docker container prune -f --filter "until=24h"', text)
+        self.assertIn("docker volume prune -f\n", text)
+        self.assertIn("docker image prune -f\n", text)
+
+    def test_host_hygiene_refuses_named_volume_removal(self) -> None:
+        read = lambda rel: (ROOT / rel).read_text(encoding="utf-8")  # noqa: E731
+        parts = [
+            read("scripts/docker-hygiene.sh"),
+            read("systemd/gha-docker-hygiene.service"),
+            read("systemd/gha-docker-hygiene.timer"),
+            read("scripts/install-host.sh"),
+        ]
+        self.assertEqual(self.contract.hygiene_violations(*parts), [])
+        broken = [parts[0].replace("docker volume prune -f", "docker volume prune -a -f"), *parts[1:]]
+        self.assertTrue(self.contract.hygiene_violations(*broken))
+        unbounded = [parts[0].replace('disk_prune_percent', 'x'), *parts[1:]]
+        self.assertTrue(self.contract.hygiene_violations(*unbounded))
+
     def test_public_ci_is_hosted(self) -> None:
         self.contract.assert_public_ci()
 

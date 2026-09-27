@@ -84,6 +84,37 @@ def assert_scripts() -> None:
             fail("install-runner.sh must verify the archive digest")
 
 
+def hygiene_violations(script: str, service: str, timer: str, host: str) -> list[str]:
+    """What is wrong with the cleanup; it may only remove what no job can use."""
+    found = []
+    for forbidden in ("system prune", "volume prune -a", "volume prune --all", "--volumes"):
+        if forbidden in script:
+            found.append(f"docker-hygiene.sh must not run {forbidden!r}: named volumes belong to someone")
+    if "docker image prune -af" in script and "disk_prune_percent" not in script:
+        found.append("docker-hygiene.sh may remove unused images only above its disk threshold")
+    if "--max-used-space" not in script:
+        found.append("docker-hygiene.sh must bound the build cache")
+    if "ExecStart=/opt/github-actions-light/scripts/docker-hygiene.sh" not in service:
+        found.append("gha-docker-hygiene.service must run the shipped script")
+    if "OnCalendar=" not in timer or "Persistent=true" not in timer:
+        found.append("gha-docker-hygiene.timer must be a persistent calendar timer")
+    if "systemctl enable --now gha-docker-hygiene.timer" not in host:
+        found.append("install-host.sh must enable the hygiene timer")
+    return found
+
+
+def assert_host_hygiene() -> None:
+    read = lambda rel: (ROOT / rel).read_text(encoding="utf-8")  # noqa: E731
+    found = hygiene_violations(
+        read("scripts/docker-hygiene.sh"),
+        read("systemd/gha-docker-hygiene.service"),
+        read("systemd/gha-docker-hygiene.timer"),
+        read("scripts/install-host.sh"),
+    )
+    if found:
+        fail(found[0])
+
+
 def assert_no_estate_facts() -> None:
     tracked = []
     for path in ROOT.rglob("*"):
@@ -152,6 +183,7 @@ def main() -> None:
     assert_public_ci()
     assert_units(pin)
     assert_scripts()
+    assert_host_hygiene()
     assert_no_estate_facts()
     assert_actions_catalog()
     print("github-actions-light contract ok")
