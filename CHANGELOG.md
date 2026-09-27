@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- `install-runner.sh` repairs an instance that is already registered under
+  the same name and scope instead of reconfiguring it, which GitHub's
+  `config.sh` refuses, and does not re-extract binaries under a running
+  slot. A different registration in the directory is refused.
+
 ## 0.1.3
 
 - Every slot is its own toolchain world. `CARGO_HOME`, `RUSTUP_HOME` and

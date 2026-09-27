@@ -61,6 +61,15 @@ a day, unreferenced anonymous volumes, dangling images, and build cache beyond
 pulls. Named volumes are never removed. `install-host.sh` is idempotent: run it
 after every upgrade of this module on a host.
 
+## Reinstall
+
+`install-runner.sh` on an instance that is already registered under the same
+name and scope repairs it. It refreshes the unit files, the job environment and
+the enablement, and neither downloads nor reconfigures, because GitHub's
+`config.sh` refuses a configured runner and re-extracting would overwrite the
+binaries of a running slot. A different registration in the same directory is
+refused until it is unregistered.
+
 ## Removal
 
 `unregister-runner.sh` always stops and disables the slot's unit, then removes

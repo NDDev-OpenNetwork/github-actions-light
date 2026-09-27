@@ -117,30 +117,49 @@ fi
 
 instance_root="${PIN_ROOT}/${instance}"
 install -d -m 0750 -o "${PIN_USER}" -g "${PIN_USER}" "${instance_root}"
-archive_path="${instance_root}/${PIN_ARCHIVE}"
 
-tmp=$(mktemp)
-trap 'rm -f "${tmp}"' EXIT
-curl -fsSL --proto '=https' --tlsv1.2 -o "${tmp}" "${PIN_URL}"
-echo "${PIN_SHA256}  ${tmp}" | sha256sum -c -
-mv "${tmp}" "${archive_path}"
-trap - EXIT
-
-tar -xzf "${archive_path}" -C "${instance_root}"
-rm -f "${archive_path}"
-chown -R "${PIN_USER}:${PIN_USER}" "${instance_root}"
+# An instance that is already registered is repaired, not reinstalled.
+# GitHub's config.sh refuses to configure a configured runner, and
+# re-extracting the archive would overwrite the binaries a running slot is
+# using. Same name and scope: keep the registration and refresh units, job
+# environment and enablement. A different registration in this directory is
+# refused; unregister it first.
+configured=0
+if [[ -f "${instance_root}/.runner" ]]; then
+  existing=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8-sig")); print(d.get("agentName",""), d.get("gitHubUrl",""))' "${instance_root}/.runner")
+  if [[ "${existing}" != "${runner_name} ${url}" ]]; then
+    echo "${instance} is registered as '${existing}', not '${runner_name} ${url}'; unregister it first" >&2
+    exit 2
+  fi
+  configured=1
+  echo "${instance} is already registered as ${runner_name}; refreshing units and environment"
+fi
 
 install -m 0644 "${repo_root}/systemd/gha-runner@.service" /etc/systemd/system/gha-runner@.service
 install -m 0644 "${repo_root}/systemd/gha-runner-docker@.service" /etc/systemd/system/gha-runner-docker@.service
 systemctl daemon-reload
 
-cd "${instance_root}"
-sudo -u "${PIN_USER}" ./config.sh --unattended --replace \
-  --url "${url}" \
-  --token "${RUNNER_TOKEN}" \
-  --name "${runner_name}" \
-  --labels "${PIN_LABELS}" \
-  --work "_work"
+if [[ "${configured}" -eq 0 ]]; then
+  archive_path="${instance_root}/${PIN_ARCHIVE}"
+  tmp=$(mktemp)
+  trap 'rm -f "${tmp}"' EXIT
+  curl -fsSL --proto '=https' --tlsv1.2 -o "${tmp}" "${PIN_URL}"
+  echo "${PIN_SHA256}  ${tmp}" | sha256sum -c -
+  mv "${tmp}" "${archive_path}"
+  trap - EXIT
+
+  tar -xzf "${archive_path}" -C "${instance_root}"
+  rm -f "${archive_path}"
+  chown -R "${PIN_USER}:${PIN_USER}" "${instance_root}"
+
+  cd "${instance_root}"
+  sudo -u "${PIN_USER}" ./config.sh --unattended --replace \
+    --url "${url}" \
+    --token "${RUNNER_TOKEN}" \
+    --name "${runner_name}" \
+    --labels "${PIN_LABELS}" \
+    --work "_work"
+fi
 
 # Job environment: see slot-env.sh. Rewritten on every install, so a
 # reinstall also migrates a slot provisioned under an older contract.
