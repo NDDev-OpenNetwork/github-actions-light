@@ -142,16 +142,12 @@ sudo -u "${PIN_USER}" ./config.sh --unattended --replace \
   --labels "${PIN_LABELS}" \
   --work "_work"
 
-# Job PATH is the runner process environment plus this file. The unit ships a
-# systemd default PATH, so slot-local tools under ${instance_root}/.local/bin
-# and the shared cargo bin must be added here or `uv`/`cargo-*` are invisible
-# to `run:` steps. Idempotent: existing keys are preserved.
-env_file="${instance_root}/.env"
-touch "${env_file}"
-grep -q '^LANG=' "${env_file}" || printf 'LANG=C.UTF-8\n' >> "${env_file}"
-grep -q '^PATH=' "${env_file}" || printf 'PATH=%s/.local/bin:/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' "${instance_root}" >> "${env_file}"
-chown "${PIN_USER}:${PIN_USER}" "${env_file}"
-chmod 0644 "${env_file}"
+# Job environment: see slot-env.sh. Rewritten on every install, so a
+# reinstall also migrates a slot provisioned under an older contract.
+# shellcheck source=scripts/slot-env.sh
+source "${repo_root}/scripts/slot-env.sh"
+write_slot_env "${instance_root}" "${PIN_USER}"
+seed_rust_default "${instance_root}" "${PIN_USER}"
 
 unit="gha-runner@${instance}.service"
 if [[ "${with_docker}" -eq 1 ]]; then
