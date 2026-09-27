@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -34,11 +37,12 @@ class LightContractTests(unittest.TestCase):
         self.assertNotIn("garm", text.lower())
 
     def test_install_script_seeds_job_path(self) -> None:
-        text = (ROOT / "scripts/install-runner.sh").read_text(encoding="utf-8")
-        self.assertIn('/.env', text)
-        self.assertIn("grep -q '^PATH='", text)
-        self.assertIn("/.local/bin", text)
-        self.assertIn("/usr/local/cargo/bin", text)
+        install = (ROOT / "scripts/install-runner.sh").read_text(encoding="utf-8")
+        env = (ROOT / "scripts/slot-env.sh").read_text(encoding="utf-8")
+        self.assertIn("write_slot_env", install)
+        self.assertIn("/.env", env)
+        self.assertIn("/.local/bin", env)
+        self.assertIn("/usr/local/cargo/bin", env)
 
     def test_host_hygiene_removes_only_what_no_job_uses(self) -> None:
         self.contract.assert_host_hygiene()
@@ -60,6 +64,30 @@ class LightContractTests(unittest.TestCase):
         self.assertTrue(self.contract.hygiene_violations(*broken))
         unbounded = [parts[0].replace('disk_prune_percent', 'x'), *parts[1:]]
         self.assertTrue(self.contract.hygiene_violations(*unbounded))
+
+    def test_slot_env_owns_its_keys_and_keeps_the_rest(self) -> None:
+        with tempfile.TemporaryDirectory() as root:
+            slot = os.path.join(root, "example-org-1")
+            os.mkdir(slot)
+            env = os.path.join(slot, ".env")
+            with open(env, "w") as f:
+                f.write("PATH=/old\nCARGO_HOME=/usr/local/cargo\nCUSTOM=kept\n")
+            user = subprocess.check_output(["id", "-un"], text=True).strip()
+            script = f'source "{ROOT}/scripts/slot-env.sh"; write_slot_env "$0" "$1"'
+            for _ in range(2):  # idempotent
+                subprocess.run(["bash", "-c", script, slot, user], check=True)
+            lines = open(env).read().splitlines()
+        self.assertIn("CUSTOM=kept", lines)
+        self.assertIn(f"CARGO_HOME={slot}/.cargo", lines)
+        self.assertIn(f"RUSTUP_HOME={slot}/.rustup", lines)
+        self.assertIn(f"BUN_INSTALL={slot}/.bun", lines)
+        paths = [line for line in lines if line.startswith("PATH=")]
+        self.assertEqual(len(paths), 1)
+        self.assertTrue(paths[0].startswith(f"PATH={slot}/.cargo/bin:"))
+        self.assertNotIn("CARGO_HOME=/usr/local/cargo", lines)
+
+    def test_slot_isolation_contract(self) -> None:
+        self.contract.assert_slot_isolation()
 
     def test_public_ci_is_hosted(self) -> None:
         self.contract.assert_public_ci()

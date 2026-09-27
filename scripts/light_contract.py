@@ -115,6 +115,37 @@ def assert_host_hygiene() -> None:
         fail(found[0])
 
 
+def assert_slot_isolation() -> None:
+    """Each slot is its own toolchain world, and removal is never silent."""
+    env = (ROOT / "scripts/slot-env.sh").read_text(encoding="utf-8")
+    install = (ROOT / "scripts/install-runner.sh").read_text(encoding="utf-8")
+    host = (ROOT / "scripts/install-host.sh").read_text(encoding="utf-8")
+    rollout = (ROOT / "scripts/rollout-slots.sh").read_text(encoding="utf-8")
+    unregister = (ROOT / "scripts/unregister-runner.sh").read_text(encoding="utf-8")
+    for key in ("CARGO_HOME=${instance_root}/.cargo", "RUSTUP_HOME=${instance_root}/.rustup",
+                "BUN_INSTALL=${instance_root}/.bun"):
+        if key not in env:
+            fail(f"slot-env.sh must set {key}")
+    def code(text: str) -> str:
+        return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+
+    for shared in ("CARGO_HOME=/usr/local", "RUSTUP_HOME=/usr/local", "BUN_INSTALL=/usr/local"):
+        if any(shared in code(text) for text in (env, install, host)):
+            fail(f"a slot must not share {shared}")
+    if "write_slot_env" not in install or "write_slot_env" not in host:
+        fail("both installers must write the slot environment")
+    if "toolchain.conf" not in host:
+        fail("install-host.sh must remove the legacy shared-toolchain drop-in")
+    if "ReadWritePaths=" in host:
+        fail("install-host.sh must not widen the unit sandbox")
+    if "chmod -R go-w" not in rollout or rollout.index("chmod -R go-w") < rollout.index("systemctl restart"):
+        fail("rollout-slots.sh must restart every slot before sealing the shared toolchains")
+    if "Runner.Worker" not in rollout:
+        fail("rollout-slots.sh must restart a slot only when it has no job")
+    if "list-unit-files" in code(unregister) or "--unattended || true" in code(unregister):
+        fail("unregister-runner.sh must not skip the stop or swallow a failed removal")
+
+
 def assert_no_estate_facts() -> None:
     tracked = []
     for path in ROOT.rglob("*"):
@@ -184,6 +215,7 @@ def main() -> None:
     assert_units(pin)
     assert_scripts()
     assert_host_hygiene()
+    assert_slot_isolation()
     assert_no_estate_facts()
     assert_actions_catalog()
     print("github-actions-light contract ok")

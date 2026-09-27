@@ -62,18 +62,28 @@ PY
 )"
 
 instance_root="${PIN_ROOT}/${instance}"
+# `list-unit-files` does not list template instances, so guarding on it left
+# the slot running. Disable unconditionally; an absent unit is not an error.
 for unit in "gha-runner@${instance}.service" "gha-runner-docker@${instance}.service"; do
-  if systemctl list-unit-files "${unit}" >/dev/null 2>&1; then
-    systemctl disable --now "${unit}" >/dev/null 2>&1 || true
-  fi
+  systemctl disable --now "${unit}" >/dev/null 2>&1 || true
+  systemctl reset-failed "${unit}" >/dev/null 2>&1 || true
 done
 
+removed=0
 if [[ -x "${instance_root}/config.sh" ]]; then
   cd "${instance_root}"
-  sudo -u "${PIN_USER}" ./config.sh remove --token "${RUNNER_TOKEN}" --unattended || true
+  if sudo -u "${PIN_USER}" ./config.sh remove --token "${RUNNER_TOKEN}" --unattended; then
+    removed=1
+  fi
 fi
 
 if [[ "${purge}" -eq 1 ]]; then
   rm -rf "${instance_root}"
+fi
+if [[ "${removed}" -ne 1 ]]; then
+  # A repository that moved answers the saved URL with 404, so the
+  # registration outlives the slot. Say so; the caller deletes it by id.
+  echo "stopped ${instance} locally, but GitHub still holds its registration" >&2
+  exit 3
 fi
 echo "unregistered ${instance}"
