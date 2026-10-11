@@ -12,6 +12,30 @@ repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 pin_root=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["layout"]["root"])' "${repo_root}/config/runner-pin.json")
 pin_user=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["layout"]["user"])' "${repo_root}/config/runner-pin.json")
 
+# Packages the runner and the workflows' setup actions shell out to. A
+# minimal host image lacks them: `unzip` is what toolchain actions
+# (setup-bun, setup-node's cache path, actions that ship zipped payloads)
+# call to unpack, and a job dies at "Prepare all required actions" without
+# it. Idempotent; apt is a no-op when the list is already satisfied.
+if command -v apt-get >/dev/null 2>&1; then
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+    ca-certificates curl git tar gzip xz-utils unzip jq python3 rsync \
+    make gcc g++ pkg-config libssl-dev protobuf-compiler cmake
+fi
+
+# github.com's host keys, global. Workflows write to `$HOME/.ssh/known_hosts`,
+# but `ssh` resolves `~` through the passwd entry — `/opt/gha-runner` — not the
+# per-slot `HOME` the unit sets, so the only file every slot actually reads is
+# this one. Without it a fresh host passes the workflow's keyscan probe and
+# then dies at clone on "Host key verification failed".
+if command -v ssh-keyscan >/dev/null 2>&1; then
+  touch /etc/ssh/ssh_known_hosts
+  { ssh-keyscan -T 10 github.com || true; ssh-keyscan -T 10 -p 443 ssh.github.com || true; } \
+    >> /etc/ssh/ssh_known_hosts
+  sort -u -o /etc/ssh/ssh_known_hosts /etc/ssh/ssh_known_hosts
+fi
+
 for unit in gha-runner@.service gha-runner-docker@.service; do
   install -m 0644 "${repo_root}/systemd/${unit}" "/etc/systemd/system/${unit}"
 done
