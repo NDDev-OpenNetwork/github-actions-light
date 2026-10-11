@@ -31,7 +31,6 @@ ProtectSystem=strict
 ReadWritePaths=/opt/gha-runner/%i
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictRealtime=true
-RestrictSUIDSGID=true
 LockPersonality=true
 SystemCallArchitectures=native
 
