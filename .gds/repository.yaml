@@ -17,7 +17,7 @@ provider:
 
 classification:
   portfolios:
-    - "portfolio:nddev-opennetwork"
+    - "portfolio:nddev-technocracy-sandbox"
   visibility_contract: "public"
   data_classification: "public"
 
