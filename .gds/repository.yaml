@@ -5,7 +5,7 @@ repository:
   roles:
   - project
   - module
-  lifecycle: archived
+  lifecycle: active
 provider:
   type: github
   installation: installation:github-nddev-technocracy-archive
